@@ -11,8 +11,15 @@ import UIKit
 class Draw2D: UIView {
     
     var drawTimer : NSTimer?
+    var calcTimer : NSTimer?
+    var autonGridWork : [Int]?
     var autonGrid : [Int]?
     var pixelGrid : PixelGrid?
+    var coordList : [(x: Int, y: Int)]?
+    let colors = [UIColor.blackColor().CGColor, UIColor.yellowColor().CGColor]
+    var isBackgroundRunning = false
+    var context : CGContext?
+    var throttle = false
     
     override func didMoveToSuperview() {
         // If we have active timers, stop them
@@ -22,16 +29,28 @@ class Draw2D: UIView {
             self.drawTimer = nil
         }
         
+        if var calcTimer = self.calcTimer {
+            // This stops the timer
+            calcTimer.invalidate()
+            self.calcTimer = nil
+        }
+        
         // If we're actually part of the view hierarchy, start the timers
         if self.superview != nil {
             //Creating the looping draw timer
             self.drawTimer = NSTimer.scheduledTimerWithTimeInterval(
-                0.01,
+                0.04,
                 target: self,
                 selector: Selector("timerDraw"),
                 userInfo: nil,
                 repeats: true)
 
+            self.calcTimer = NSTimer.scheduledTimerWithTimeInterval(
+                0.04,
+                target: self,
+                selector: Selector("calculateData"),
+                userInfo: nil,
+                repeats: true)
         }
     }
     
@@ -42,45 +61,59 @@ class Draw2D: UIView {
     // Only override drawRect: if you perform custom drawing.
     // An empty implementation adversely affects performance during animation.
     override func drawRect(rect: CGRect) {
-        pixelGrid = PixelGrid(width: 128, height: 256, size: 2)
-        
-        if autonGrid != nil {
-            passAutonGrid(pixelGrid!)
-            addNewCells(pixelGrid!)
-        } else {
-            autonGrid = generateAutonGrid(pixelGrid!)
+        if pixelGrid == nil {
+            pixelGrid = PixelGrid(width: 80, height: 142, size: 4)
+            coordList = makeCoordList(pixelGrid!)
+            autonGridWork = generateAutonGrid(pixelGrid!)
+            autonGrid = autonGridWork
+            context = UIGraphicsGetCurrentContext()
         }
         
         drawGrid(
-            UIGraphicsGetCurrentContext(),
+            context!,
             grid: pixelGrid!,
             autonGrid: autonGrid!
         )
     }
     
     func drawGrid(context: CGContext, grid: PixelGrid, autonGrid: [Int]) {
-        coordList(grid).map { (coord: (x: Int, y: Int)) -> Pixel in
-            return self.makePixel(grid, autonGrid: autonGrid, x: coord.x, y: coord.y)
-        }.map { (pixel: Pixel) in
-            self.drawPixel(context, pixel: pixel)
+        CGContextSetFillColorWithColor(context, colors[1])
+        
+        for y in stride(from: grid.height - 1, through: 0, by: -1) {
+            // We're going to try to draw contiguous areas with a single rectangle.
+            // But only in rows, at the moment.
+            var contiguousSince = 0
+            var contiguous = false
+            
+            for x in stride(from: 0, to: grid.width, by: 1) {
+                if contiguous {
+                    if autonGrid[y * grid.width + x] != 1 {
+                        let from = contiguousSince
+                        let to = x - 1
+                        let rect = CGRectMake(CGFloat(from * grid.size), CGFloat(y * grid.size), CGFloat((to - from) * grid.size), CGFloat(grid.size))
+                        CGContextAddRect(context, rect)
+                        CGContextFillRect(context, rect)
+                        contiguous = false
+                    }
+                } else {
+                    if autonGrid[y * grid.width + x] == 1 {
+                        contiguous = true
+                        contiguousSince = x
+                    }
+                }
+            }
+            
+            if contiguous {
+                let from = contiguousSince
+                let to = grid.width
+                let rect = CGRectMake(CGFloat(from * grid.size), CGFloat(y * grid.size), CGFloat((to - from) * grid.size), CGFloat(grid.size))
+                CGContextAddRect(context, rect)
+                CGContextFillRect(context, rect)
+            }
         }
     }
     
-    func drawPixel(context: CGContext, pixel: Pixel) {
-        CGContextAddRect(context, pixel.rect)
-        let colors = [UIColor.whiteColor().CGColor, UIColor.blackColor().CGColor]
-        CGContextSetFillColorWithColor(context, colors[pixel.value])
-        CGContextFillRect(context, pixel.rect)
-    }
-    
-    func makePixel(grid: PixelGrid, autonGrid: [Int], x: Int, y: Int) -> Pixel {
-        return Pixel(
-            rect: CGRectMake(CGFloat(x * grid.size), CGFloat(y * grid.size), CGFloat(grid.size), CGFloat(grid.size)),
-            value: autonGrid[y * grid.width + x]
-        )
-    }
-    
-    func coordList(grid: PixelGrid) -> [(x: Int, y: Int)] {
+    func makeCoordList(grid: PixelGrid) -> [(x: Int, y: Int)] {
         return reduce(0..<grid.height, []) { (memo: [(x: Int, y: Int)], y: Int) -> [(x: Int, y: Int)] in
             return memo + map(0..<grid.width) { (x: Int) -> (x: Int, y: Int) in
                 return (x: x, y: y)
@@ -89,9 +122,7 @@ class Draw2D: UIView {
     }
     
     func generateAutonGrid(pixelGrid: PixelGrid) -> ([Int]) {
-        return coordList(pixelGrid).map { (g: (x: Int, y: Int)) -> Int in
-            return 0
-        }
+        return [Int](count: coordList!.count, repeatedValue: 0)
     }
     
     func getOffset(x: Int, y: Int) -> Int {
@@ -109,24 +140,52 @@ class Draw2D: UIView {
     func passAutonGrid(pixelGrid: PixelGrid) {
         for y in stride(from: pixelGrid.height - 1, through: 0, by: -1) {
             for x in stride(from: 0, to: pixelGrid.width, by: 1) {
-                if(autonGrid![getOffset(x, y: y)] == 1) {
-                    var randomFlop = [-1, 1][(Int(rand()) % 2)]
-                    if isValidOffset(x, y: y + 1) && autonGrid![getOffset(x, y: y + 1)] == 0 {
-                        autonGrid![getOffset(x, y: y)] = 0
-                        autonGrid![getOffset(x, y: y + 1)] = 1
-                    } else if isValidOffset(x + randomFlop, y: y + 1) && (autonGrid![getOffset(x + randomFlop, y: y + 1)] == 0) {
-                        autonGrid![getOffset(x, y: y)] = 0
-                        autonGrid![getOffset(x + randomFlop, y: y + 1)] = 1
+                if(autonGridWork![getOffset(x, y: y)] == 1) {
+                    let randomFlop = (Int(rand()) % 2) == 0 ? -1 : 1
+                    if isValidOffset(x, y: y + 1) && autonGridWork![getOffset(x, y: y + 1)] == 0 {
+                        autonGridWork![getOffset(x, y: y)] = 0
+                        autonGridWork![getOffset(x, y: y + 1)] = 1
+                    } else if isValidOffset(x + randomFlop, y: y + 1) && (autonGridWork![getOffset(x + randomFlop, y: y + 1)] == 0) {
+                        autonGridWork![getOffset(x, y: y)] = 0
+                        autonGridWork![getOffset(x + randomFlop, y: y + 1)] = 1
                     }
                 }
             }
         }
     }
     
-    func addNewCells(pixelGrid: PixelGrid) {
-        for i in 0...3 {
-            autonGrid![getOffset(pixelGrid.width / 2 + ((Int(rand()) % 5) - 2), y: 0)] = 1
+    func calculateData() {
+        if isBackgroundRunning == false {
+            isBackgroundRunning = true
+            
+            if throttle {
+                autonGridWork = generateAutonGrid(pixelGrid!)
+                throttle = false
+            }
+            
+            doBackgroundRun() {
+                self.autonGrid = self.autonGridWork
+                self.isBackgroundRunning = false
+            }
+        } else  {
+            throttle = true
         }
+    }
+    
+    func doBackgroundRun(fn: () -> ()) {
+        let qualityOfServiceClass = QOS_CLASS_BACKGROUND
+        let backgroundQueue = dispatch_get_global_queue(qualityOfServiceClass, 0)
+        dispatch_async(backgroundQueue, {
+            self.passAutonGrid(self.pixelGrid!)
+            
+            for i in 0...3 {
+                self.autonGridWork![self.getOffset(self.pixelGrid!.width / 2 + ((Int(rand()) % 6) - 4), y: 0)] = 1
+            }
+            
+            dispatch_async(dispatch_get_main_queue(), {
+                fn()
+            })
+        })
     }
 
 }
