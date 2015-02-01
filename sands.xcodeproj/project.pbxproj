@@ -15,7 +15,6 @@
 		DC8DBFF91A7E4F9000F8015F /* sandsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8DBFF81A7E4F9000F8015F /* sandsTests.swift */; };
 		DC8DC0031A7E51E600F8015F /* Draw2D.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8DC0021A7E51E600F8015F /* Draw2D.swift */; };
 		DC8DC0051A7E633700F8015F /* PixelGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8DC0041A7E633700F8015F /* PixelGrid.swift */; };
-		DC8DC0071A7E6D0B00F8015F /* Pixel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8DC0061A7E6D0B00F8015F /* Pixel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,7 +40,6 @@
 		DC8DBFF81A7E4F9000F8015F /* sandsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = sandsTests.swift; sourceTree = "<group>"; };
 		DC8DC0021A7E51E600F8015F /* Draw2D.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Draw2D.swift; sourceTree = "<group>"; };
 		DC8DC0041A7E633700F8015F /* PixelGrid.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PixelGrid.swift; sourceTree = "<group>"; };
-		DC8DC0061A7E6D0B00F8015F /* Pixel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Pixel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,7 +89,6 @@
 				DC8DBFE01A7E4F9000F8015F /* Supporting Files */,
 				DC8DC0021A7E51E600F8015F /* Draw2D.swift */,
 				DC8DC0041A7E633700F8015F /* PixelGrid.swift */,
-				DC8DC0061A7E6D0B00F8015F /* Pixel.swift */,
 			);
 			path = sands;
 			sourceTree = "<group>";
@@ -223,7 +220,6 @@
 			files = (
 				DC8DBFE51A7E4F9000F8015F /* ViewController.swift in Sources */,
 				DC8DBFE31A7E4F9000F8015F /* AppDelegate.swift in Sources */,
-				DC8DC0071A7E6D0B00F8015F /* Pixel.swift in Sources */,
 				DC8DC0051A7E633700F8015F /* PixelGrid.swift in Sources */,
 				DC8DC0031A7E51E600F8015F /* Draw2D.swift in Sources */,
 			);
@@ -417,6 +413,7 @@
 				DC8DBFFE1A7E4F9000F8015F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		DC8DBFFF1A7E4F9000F8015F /* Build configuration list for PBXNativeTarget "sandsTests" */ = {
 			isa = XCConfigurationList;
@@ -425,6 +422,7 @@
 				DC8DC0011A7E4F9000F8015F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

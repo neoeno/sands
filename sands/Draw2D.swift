@@ -12,14 +12,13 @@ class Draw2D: UIView {
     
     var drawTimer : NSTimer?
     var calcTimer : NSTimer?
-    var autonGridWork : [Int]?
-    var autonGrid : [Int]?
+    var autonGridWork : [Byte]?
+    var autonGrid : [Byte]?
     var pixelGrid : PixelGrid?
-    var coordList : [(x: Int, y: Int)]?
-    let colors = [UIColor.blackColor().CGColor, UIColor.yellowColor().CGColor]
+    var colors = [UIColor.blackColor().CGColor, UIColor.yellowColor().CGColor]
     var isBackgroundRunning = false
     var context : CGContext?
-    var throttle = false
+    var throttle = 0
     
     override func didMoveToSuperview() {
         // If we have active timers, stop them
@@ -62,8 +61,7 @@ class Draw2D: UIView {
     // An empty implementation adversely affects performance during animation.
     override func drawRect(rect: CGRect) {
         if pixelGrid == nil {
-            pixelGrid = PixelGrid(width: 80, height: 142, size: 4)
-            coordList = makeCoordList(pixelGrid!)
+            pixelGrid = PixelGrid(width: 142*2, height: 80*2, size: 2)
             autonGridWork = generateAutonGrid(pixelGrid!)
             autonGrid = autonGridWork
             context = UIGraphicsGetCurrentContext()
@@ -76,7 +74,7 @@ class Draw2D: UIView {
         )
     }
     
-    func drawGrid(context: CGContext, grid: PixelGrid, autonGrid: [Int]) {
+    func drawGrid(context: CGContext, grid: PixelGrid, autonGrid: [Byte]) {
         CGContextSetFillColorWithColor(context, colors[1])
         
         for y in stride(from: grid.height - 1, through: 0, by: -1) {
@@ -113,16 +111,8 @@ class Draw2D: UIView {
         }
     }
     
-    func makeCoordList(grid: PixelGrid) -> [(x: Int, y: Int)] {
-        return reduce(0..<grid.height, []) { (memo: [(x: Int, y: Int)], y: Int) -> [(x: Int, y: Int)] in
-            return memo + map(0..<grid.width) { (x: Int) -> (x: Int, y: Int) in
-                return (x: x, y: y)
-            }
-        }
-    }
-    
-    func generateAutonGrid(pixelGrid: PixelGrid) -> ([Int]) {
-        return [Int](count: coordList!.count, repeatedValue: 0)
+    func generateAutonGrid(pixelGrid: PixelGrid) -> [Byte] {
+        return [Byte](count: pixelGrid.width * pixelGrid.height, repeatedValue: 0)
     }
     
     func getOffset(x: Int, y: Int) -> Int {
@@ -158,9 +148,11 @@ class Draw2D: UIView {
         if isBackgroundRunning == false {
             isBackgroundRunning = true
             
-            if throttle {
-                autonGridWork = generateAutonGrid(pixelGrid!)
-                throttle = false
+            if throttle > 0 {
+                colors[1] = UIColor.redColor().CGColor
+                throttle = 0
+            } else {
+                colors[1] = UIColor.yellowColor().CGColor
             }
             
             doBackgroundRun() {
@@ -168,7 +160,7 @@ class Draw2D: UIView {
                 self.isBackgroundRunning = false
             }
         } else  {
-            throttle = true
+            throttle = 1
         }
     }
     
