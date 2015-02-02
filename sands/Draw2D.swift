@@ -40,14 +40,11 @@ class Draw2D: UIView {
         }
     }
     
-    func timerDraw() {
-        self.setNeedsDisplay()
-    }
-
     // Only override drawRect: if you perform custom drawing.
     // An empty implementation adversely affects performance during animation.
     override func drawRect(rect: CGRect) {
         if pixelGrid == nil {
+            UIDevice.currentDevice().beginGeneratingDeviceOrientationNotifications()
             pixelGrid = PixelGrid(width: 142*2, height: 80*2, size: 2)
             autonGrid = generateAutonGrid(pixelGrid!)
             context = CGContextCreate(self.frame.size)
@@ -138,30 +135,50 @@ class Draw2D: UIView {
     }
     
     func isValidOffset(x: Int, y: Int) -> Bool {
+        if x < 0 || y < 0 { return false }
         return y < pixelGrid!.height && x < pixelGrid!.width
     }
     
     func passAutonGrid(pixelGrid: PixelGrid) {
         for y in stride(from: pixelGrid.height - 1, through: 0, by: -1) {
-            for x in stride(from: 0, to: pixelGrid.width, by: 1) {
+            for x in stride(from: pixelGrid.width - 1, through: 0, by: -1) {
                 let thisOffset = getOffset(x, y: y)
                 let thisVal = autonGrid![thisOffset]
                 
                 if(thisVal != 0) {
-                    let randomFlop = (Int(rand()) % 2) == 0 ? -1 : 1
-                    let belowOffset = getOffset(x, y: y + 1)
-                    let diagOffset = getOffset(x + randomFlop, y: y + 1)
-                    
-                    if isValidOffset(x, y: y + 1) && autonGrid![belowOffset] == 0 {
-                        autonGrid![belowOffset] = thisVal
-                        autonGrid![thisOffset] = 0
-                        self.queuePixelDraw(x, y: y + 1)
-                        self.queuePixelDraw(x, y: y)
-                    } else if isValidOffset(x + randomFlop, y: y + 1) && (autonGrid![diagOffset] == 0) {
-                        autonGrid![diagOffset] = thisVal
-                        autonGrid![thisOffset] = 0
-                        self.queuePixelDraw(x + randomFlop, y: y + 1)
-                        self.queuePixelDraw(x, y: y)
+                    if !UIDeviceOrientationIsPortrait(UIDevice.currentDevice().orientation) {
+                        let randomFlop = (Int(rand()) % 2) == 0 ? -1 : 1
+                        let belowOffset = getOffset(x, y: y + 1)
+                        let diagOffset = getOffset(x + randomFlop, y: y + 1)
+                        
+                        if isValidOffset(x, y: y + 1) && autonGrid![belowOffset] == 0 {
+                            autonGrid![belowOffset] = thisVal
+                            autonGrid![thisOffset] = 0
+                            self.queuePixelDraw(x, y: y + 1)
+                            self.queuePixelDraw(x, y: y)
+                        } else if isValidOffset(x + randomFlop, y: y + 1) && (autonGrid![diagOffset] == 0) {
+                            autonGrid![diagOffset] = thisVal
+                            autonGrid![thisOffset] = 0
+                            self.queuePixelDraw(x + randomFlop, y: y + 1)
+                            self.queuePixelDraw(x, y: y)
+                        }
+                    } else {
+                        let randomFlop = (Int(rand()) % 2) == 0 ? -1 : 1
+                        let belowOffset = getOffset(x + 1, y: y)
+                        let diagOffset = getOffset(x + 1, y: y + randomFlop)
+                        
+                        if isValidOffset(x + 1, y: y) && autonGrid![belowOffset] == 0 {
+                            autonGrid![belowOffset] = thisVal
+                            autonGrid![thisOffset] = 0
+                            self.queuePixelDraw(x + 1, y: y)
+                            self.queuePixelDraw(x, y: y)
+                        } else if isValidOffset(x + 1, y: y + randomFlop) && (autonGrid![diagOffset] == 0) {
+                            autonGrid![diagOffset] = thisVal
+                            autonGrid![thisOffset] = 0
+                            self.queuePixelDraw(x + 1, y: y + randomFlop)
+                            self.queuePixelDraw(x, y: y)
+                        }
+
                     }
                 }
             }
@@ -194,10 +211,18 @@ class Draw2D: UIView {
         dispatch_async(backgroundQueue, {
             self.passAutonGrid(self.pixelGrid!)
             
-            for i in 0...2 {
-                let x = self.pixelGrid!.width / 2 + ((Int(rand()) % 6) - 4)
-                self.autonGrid![self.getOffset(x, y: 0)] = self.currentColor
-                self.queuePixelDraw(x, y: 0)
+            if !UIDeviceOrientationIsPortrait(UIDevice.currentDevice().orientation) {
+                for i in 0...2 {
+                    let x = self.pixelGrid!.width / 2 + ((Int(rand()) % 6) - 4)
+                    self.autonGrid![self.getOffset(x, y: 0)] = self.currentColor
+                    self.queuePixelDraw(x, y: 0)
+                }
+            } else {
+                for i in 0...2 {
+                    let y = self.pixelGrid!.height / 2 + ((Int(rand()) % 6) - 4)
+                    self.autonGrid![self.getOffset(0, y: y)] = self.currentColor
+                    self.queuePixelDraw(0, y: y)
+                }
             }
             
             self.drawGridDiff(self.context!, grid: self.pixelGrid!, autonGridDiff: self.autonGridDiff!)
