@@ -83,47 +83,30 @@ class Draw2D: UIView {
             // But only in rows, at the moment.
             var contiguousSince = 0
             var contiguousValue : Byte = 0
-            var contiguous = false
             
             for x in stride(from: 0, to: grid.width, by: 1) {
-                if contiguous {
-                    if autonGrid[y * grid.width + x] != contiguousValue {
-                        let from = contiguousSince
-                        let to = x
-                        let rect = CGRectMake(CGFloat(from * grid.size), CGFloat(y * grid.size), CGFloat((to - from) * grid.size), CGFloat(grid.size))
-                        CGContextSetFillColorWithColor(context, colors[Int(contiguousValue)])
-                        CGContextAddRect(context, rect)
-                        CGContextFillRect(context, rect)
-//                        CGContextStrokeRect(context, rect)
-                        
-                        if(autonGrid[y * grid.width + x] != 0) {
-                            contiguous = true
-                            contiguousSince = x
-                            contiguousValue = autonGrid[y * grid.width + x]
-                        } else {
-                            contiguous = false
-                            contiguousValue = 0
-                        }
-                    }
-                } else {
-                    if autonGrid[y * grid.width + x] != contiguousValue {
-                        contiguous = true
-                        contiguousSince = x
-                        contiguousValue = autonGrid[y * grid.width + x]
-                    }
+                if autonGrid[y * grid.width + x] != contiguousValue {
+                    drawRectFromPixelToPixel(grid, y: y, xFrom: contiguousSince, xTo: x, value: contiguousValue)
+            
+                    contiguousSince = x
+                    contiguousValue = autonGrid[y * grid.width + x]
                 }
             }
-            
-            if contiguous {
-                let from = contiguousSince
-                let to = grid.width
-                let rect = CGRectMake(CGFloat(from * grid.size), CGFloat(y * grid.size), CGFloat((to - from) * grid.size), CGFloat(grid.size))
-                CGContextSetFillColorWithColor(context, colors[Int(contiguousValue)])
-                CGContextAddRect(context, rect)
-                CGContextFillRect(context, rect)
-            }
+        
+            drawRectFromPixelToPixel(grid, y: y, xFrom: contiguousSince, xTo: grid.width, value: contiguousValue)
         }
     }
+    
+    func drawRectFromPixelToPixel(grid: PixelGrid, y: Int, xFrom: Int, xTo: Int, value: Byte) {
+        if value == 0 { return }
+        
+        let rect = CGRectMake(CGFloat(xFrom * grid.size), CGFloat(y * grid.size), CGFloat((xTo - xFrom) * grid.size), CGFloat(grid.size))
+        
+        CGContextSetFillColorWithColor(context!, colors[Int(value)])
+        CGContextAddRect(context!, rect)
+        CGContextFillRect(context!, rect)
+    }
+
     
     func generateAutonGrid(pixelGrid: PixelGrid) -> [Byte] {
         return [Byte](count: pixelGrid.width * pixelGrid.height, repeatedValue: 0)
