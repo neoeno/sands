@@ -19,6 +19,7 @@ class Draw2D: UIView {
     var context : CGContext?
     var throttle = 0
     var currentColor : Byte = 1
+    var autonGridDiff : [Byte?]?
     
     override func didMoveToSuperview() {
         // If we have active timers, stop them
@@ -69,34 +70,42 @@ class Draw2D: UIView {
         return context
     }
     
-    func drawGrid(context: CGContext, grid: PixelGrid, autonGrid: [Byte]) {
+    func drawGridDiff(context: CGContext, grid: PixelGrid, autonGridDiff: [Byte?]) {
         for y in stride(from: grid.height - 1, through: 0, by: -1) {
             // We're going to try to draw contiguous areas with a single rectangle.
             // But only in rows, at the moment.
             var contiguousSince = 0
-            var contiguousValue : Byte = 0
+            var contiguousValue : Byte? = 0
             
             for x in stride(from: 0, to: grid.width, by: 1) {
-                if autonGrid[y * grid.width + x] != contiguousValue {
+                if autonGridDiff[y * grid.width + x] != contiguousValue {
                     drawRectFromPixelToPixel(grid, y: y, xFrom: contiguousSince, xTo: x, value: contiguousValue)
-            
+                    
                     contiguousSince = x
-                    contiguousValue = autonGrid[y * grid.width + x]
+                    contiguousValue = autonGridDiff[y * grid.width + x]
                 }
             }
-        
+            
             drawRectFromPixelToPixel(grid, y: y, xFrom: contiguousSince, xTo: grid.width, value: contiguousValue)
         }
     }
     
-    func drawRectFromPixelToPixel(grid: PixelGrid, y: Int, xFrom: Int, xTo: Int, value: Byte) {
-        if value == 0 { return }
+    func drawRectFromPixelToPixel(grid: PixelGrid, y: Int, xFrom: Int, xTo: Int, value: Byte?) {
+        if value == nil { return }
         
         let rect = CGRectMake(CGFloat(xFrom * grid.size), CGFloat(y * grid.size), CGFloat((xTo - xFrom) * grid.size), CGFloat(grid.size))
         
-        CGContextSetFillColorWithColor(context!, colors[Int(value)])
+        CGContextSetFillColorWithColor(context!, colors[Int(value!)])
         CGContextAddRect(context!, rect)
         CGContextFillRect(context!, rect)
+    }
+    
+    func queuePixelDraw(x: Int, y: Int) {
+        if autonGridDiff == nil {
+            autonGridDiff = generateAutonGridDiff(pixelGrid!)
+        }
+        
+        autonGridDiff![getOffset(x, y: y)] = autonGrid![getOffset(x, y: y)]
     }
     
     func drawSinglePixel(x: Int, y: Int) {
@@ -112,6 +121,16 @@ class Draw2D: UIView {
     
     func generateAutonGrid(pixelGrid: PixelGrid) -> [Byte] {
         return [Byte](count: pixelGrid.width * pixelGrid.height, repeatedValue: 0)
+    }
+    
+    func generateAutonGridDiff(pixelGrid: PixelGrid) -> [Byte?] {
+        return [Byte?](count: pixelGrid.width * pixelGrid.height, repeatedValue: nil)
+    }
+    
+    func resetAutonGridDiff() {
+        for i in 0...(autonGridDiff!.count-1) {
+            autonGridDiff![i] = nil
+        }
     }
     
     func getOffset(x: Int, y: Int) -> Int {
@@ -136,13 +155,13 @@ class Draw2D: UIView {
                     if isValidOffset(x, y: y + 1) && autonGrid![belowOffset] == 0 {
                         autonGrid![belowOffset] = thisVal
                         autonGrid![thisOffset] = 0
-                        self.drawSinglePixel(x, y: y + 1)
-                        self.drawSinglePixel(x, y: y)
+                        self.queuePixelDraw(x, y: y + 1)
+                        self.queuePixelDraw(x, y: y)
                     } else if isValidOffset(x + randomFlop, y: y + 1) && (autonGrid![diagOffset] == 0) {
                         autonGrid![diagOffset] = thisVal
                         autonGrid![thisOffset] = 0
-                        self.drawSinglePixel(x + randomFlop, y: y + 1)
-                        self.drawSinglePixel(x, y: y)
+                        self.queuePixelDraw(x + randomFlop, y: y + 1)
+                        self.queuePixelDraw(x, y: y)
                     }
                 }
             }
@@ -178,8 +197,11 @@ class Draw2D: UIView {
             for i in 0...2 {
                 let x = self.pixelGrid!.width / 2 + ((Int(rand()) % 6) - 4)
                 self.autonGrid![self.getOffset(x, y: 0)] = self.currentColor
-                self.drawSinglePixel(x, y: 0)
+                self.queuePixelDraw(x, y: 0)
             }
+            
+            self.drawGridDiff(self.context!, grid: self.pixelGrid!, autonGridDiff: self.autonGridDiff!)
+            self.resetAutonGridDiff()
             
             dispatch_async(dispatch_get_main_queue(), {
                 fn()
