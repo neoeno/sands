@@ -12,7 +12,6 @@ class Draw2D: UIView {
     
     var drawTimer : NSTimer?
     var calcTimer : NSTimer?
-    var autonGridWork : [Byte]?
     var autonGrid : [Byte]?
     var pixelGrid : PixelGrid?
     var colors = [UIColor.blackColor().CGColor, UIColor.yellowColor().CGColor, UIColor.redColor().CGColor]
@@ -23,12 +22,6 @@ class Draw2D: UIView {
     
     override func didMoveToSuperview() {
         // If we have active timers, stop them
-        if var drawTimer = self.drawTimer {
-            // This stops the timer
-            drawTimer.invalidate()
-            self.drawTimer = nil
-        }
-        
         if var calcTimer = self.calcTimer {
             // This stops the timer
             calcTimer.invalidate()
@@ -37,14 +30,6 @@ class Draw2D: UIView {
         
         // If we're actually part of the view hierarchy, start the timers
         if self.superview != nil {
-            //Creating the looping draw timer
-            self.drawTimer = NSTimer.scheduledTimerWithTimeInterval(
-                0.04,
-                target: self,
-                selector: Selector("timerDraw"),
-                userInfo: nil,
-                repeats: true)
-
             self.calcTimer = NSTimer.scheduledTimerWithTimeInterval(
                 0.04,
                 target: self,
@@ -63,21 +48,28 @@ class Draw2D: UIView {
     override func drawRect(rect: CGRect) {
         if pixelGrid == nil {
             pixelGrid = PixelGrid(width: 142*2, height: 80*2, size: 2)
-            autonGridWork = generateAutonGrid(pixelGrid!)
-            autonGrid = autonGridWork
-            context = UIGraphicsGetCurrentContext()
+            autonGrid = generateAutonGrid(pixelGrid!)
+            context = CGContextCreate(self.frame.size)
         }
         
-        drawGrid(
-            context!,
-            grid: pixelGrid!,
-            autonGrid: autonGrid!
-        )
+        drawToScreen()
+    }
+    
+    func drawToScreen() {
+        let realContext = UIGraphicsGetCurrentContext()
+        let image = CGBitmapContextCreateImage(context)
+        CGContextDrawImage(realContext, CGRectMake(0, 0, self.frame.size.width, self.frame.size.height), image)
+    }
+    
+    func CGContextCreate(size: CGSize) -> CGContextRef {
+        let colorSpace:CGColorSpace = CGColorSpaceCreateDeviceRGB()
+        let bitmapInfo = CGBitmapInfo(CGImageAlphaInfo.PremultipliedLast.rawValue)
+        let context = CGBitmapContextCreate(nil, UInt(size.width), UInt(size.height), 8, 0, colorSpace, bitmapInfo)
+        
+        return context
     }
     
     func drawGrid(context: CGContext, grid: PixelGrid, autonGrid: [Byte]) {
-        CGContextSetStrokeColorWithColor(context, UIColor.blueColor().CGColor)
-        CGContextSetLineWidth(context, 0.5)
         for y in stride(from: grid.height - 1, through: 0, by: -1) {
             // We're going to try to draw contiguous areas with a single rectangle.
             // But only in rows, at the moment.
@@ -106,6 +98,16 @@ class Draw2D: UIView {
         CGContextAddRect(context!, rect)
         CGContextFillRect(context!, rect)
     }
+    
+    func drawSinglePixel(x: Int, y: Int) {
+        // Poss reuse drawGrid optimisation here if it's necessary.
+        let grid = pixelGrid!
+        let rect = CGRectMake(CGFloat(x * grid.size), CGFloat(y * grid.size), CGFloat(grid.size), CGFloat(grid.size))
+        
+        CGContextSetFillColorWithColor(context!, colors[Int(autonGrid![getOffset(x, y: y)])])
+        CGContextAddRect(context!, rect)
+        CGContextFillRect(context!, rect)
+    }
 
     
     func generateAutonGrid(pixelGrid: PixelGrid) -> [Byte] {
@@ -124,19 +126,23 @@ class Draw2D: UIView {
         for y in stride(from: pixelGrid.height - 1, through: 0, by: -1) {
             for x in stride(from: 0, to: pixelGrid.width, by: 1) {
                 let thisOffset = getOffset(x, y: y)
-                let thisVal = autonGridWork![thisOffset]
+                let thisVal = autonGrid![thisOffset]
                 
                 if(thisVal != 0) {
                     let randomFlop = (Int(rand()) % 2) == 0 ? -1 : 1
                     let belowOffset = getOffset(x, y: y + 1)
                     let diagOffset = getOffset(x + randomFlop, y: y + 1)
                     
-                    if isValidOffset(x, y: y + 1) && autonGridWork![belowOffset] == 0 {
-                        autonGridWork![belowOffset] = thisVal
-                        autonGridWork![thisOffset] = 0
-                    } else if isValidOffset(x + randomFlop, y: y + 1) && (autonGridWork![diagOffset] == 0) {
-                        autonGridWork![diagOffset] = thisVal
-                        autonGridWork![thisOffset] = 0
+                    if isValidOffset(x, y: y + 1) && autonGrid![belowOffset] == 0 {
+                        autonGrid![belowOffset] = thisVal
+                        autonGrid![thisOffset] = 0
+                        self.drawSinglePixel(x, y: y + 1)
+                        self.drawSinglePixel(x, y: y)
+                    } else if isValidOffset(x + randomFlop, y: y + 1) && (autonGrid![diagOffset] == 0) {
+                        autonGrid![diagOffset] = thisVal
+                        autonGrid![thisOffset] = 0
+                        self.drawSinglePixel(x + randomFlop, y: y + 1)
+                        self.drawSinglePixel(x, y: y)
                     }
                 }
             }
@@ -155,7 +161,7 @@ class Draw2D: UIView {
             }
             
             doBackgroundRun() {
-                self.autonGrid = self.autonGridWork
+                self.setNeedsDisplay()
                 self.isBackgroundRunning = false
             }
         } else  {
@@ -169,8 +175,10 @@ class Draw2D: UIView {
         dispatch_async(backgroundQueue, {
             self.passAutonGrid(self.pixelGrid!)
             
-            for i in 0...3 {
-                self.autonGridWork![self.getOffset(self.pixelGrid!.width / 2 + ((Int(rand()) % 6) - 4), y: 0)] = self.currentColor
+            for i in 0...2 {
+                let x = self.pixelGrid!.width / 2 + ((Int(rand()) % 6) - 4)
+                self.autonGrid![self.getOffset(x, y: 0)] = self.currentColor
+                self.drawSinglePixel(x, y: 0)
             }
             
             dispatch_async(dispatch_get_main_queue(), {
