@@ -12,11 +12,13 @@ class Draw2D: UIView {
     
     var drawTimer : NSTimer?
     var calcTimer : NSTimer?
-    var colors = [UIColor.blackColor().CGColor, UIColor.yellowColor().CGColor, UIColor.redColor().CGColor]
+    var colors = [UIColor.blackColor().CGColor, UIColor.yellowColor().CGColor, UIColor.redColor().CGColor, UIColor.blueColor().CGColor]
     var isBackgroundRunning = false
     var context : CGContextRef?
     var throttle = 0
     lazy var sandGrid = SandGrid()
+    let backgroundQueue = dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)
+    var droppedFrames : Int = 0
     
     override func didMoveToSuperview() {
         // If we have active timers, stop them
@@ -31,7 +33,7 @@ class Draw2D: UIView {
         // If we're actually part of the view hierarchy, start the timers
         if self.superview != nil {
             self.calcTimer = NSTimer.scheduledTimerWithTimeInterval(
-                0.04,
+                0.03,
                 target: self,
                 selector: Selector("calculateData"),
                 userInfo: nil,
@@ -90,7 +92,14 @@ class Draw2D: UIView {
         
         let rect = CGRectMake(CGFloat(xFrom * grid.size), CGFloat(y * grid.size), CGFloat((xTo - xFrom) * grid.size), CGFloat(grid.size))
         
-        CGContextSetFillColorWithColor(context!, colors[Int(value!)])
+        var color = colors[0]
+        if (value! & 0b11000000) == 0b11000000 {
+            color = colors[3]
+        } else {
+            color = colors[Int(value!) & 0b00111111]
+        }
+
+        CGContextSetFillColorWithColor(context!, colors[Int(value!) & 0b00111111])
         CGContextAddRect(context!, rect)
         CGContextFillRect(context!, rect)
     }
@@ -98,6 +107,12 @@ class Draw2D: UIView {
     func calculateData() {
         if isBackgroundRunning == false {
             isBackgroundRunning = true
+            
+            if UIDeviceOrientationIsPortrait(UIDevice.currentDevice().orientation) {
+                sandGrid.orientation = "Portrait"
+            } else {
+                sandGrid.orientation = "Landscape"
+            }
             
             if throttle > 0 {
                 sandGrid.currentColor = 2
@@ -116,12 +131,11 @@ class Draw2D: UIView {
     }
     
     func doBackgroundRun(fn: () -> ()) {
-        let qualityOfServiceClass = QOS_CLASS_BACKGROUND
-        let backgroundQueue = dispatch_get_global_queue(qualityOfServiceClass, 0)
         dispatch_async(backgroundQueue, {
-            self.drawGridDiff(self.sandGrid.pixelGrid, sandGridDiff: self.sandGrid.frameDiff())
+            let gridDiff = self.sandGrid.frameDiff()
             
             dispatch_async(dispatch_get_main_queue(), {
+                self.drawGridDiff(self.sandGrid.pixelGrid, sandGridDiff: gridDiff)
                 fn()
             })
         })

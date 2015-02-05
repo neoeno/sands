@@ -16,6 +16,8 @@
 		DC8DC0031A7E51E600F8015F /* Draw2D.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8DC0021A7E51E600F8015F /* Draw2D.swift */; };
 		DC8DC0051A7E633700F8015F /* PixelGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8DC0041A7E633700F8015F /* PixelGrid.swift */; };
 		DCC63E1B1A8388CA00D5483E /* SandGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCC63E1A1A8388CA00D5483E /* SandGrid.swift */; };
+		DCC63E1D1A839EE900D5483E /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = DCC63E1C1A839EE900D5483E /* Shaders.metal */; };
+		DCC63E1F1A839FA800D5483E /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DCC63E1E1A839FA800D5483E /* Metal.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,6 +44,8 @@
 		DC8DC0021A7E51E600F8015F /* Draw2D.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Draw2D.swift; sourceTree = "<group>"; };
 		DC8DC0041A7E633700F8015F /* PixelGrid.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PixelGrid.swift; sourceTree = "<group>"; };
 		DCC63E1A1A8388CA00D5483E /* SandGrid.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SandGrid.swift; sourceTree = "<group>"; };
+		DCC63E1C1A839EE900D5483E /* Shaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
+		DCC63E1E1A839FA800D5483E /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -49,6 +53,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DCC63E1F1A839FA800D5483E /* Metal.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 		DC8DBFD41A7E4F9000F8015F = {
 			isa = PBXGroup;
 			children = (
+				DCC63E1E1A839FA800D5483E /* Metal.framework */,
 				DC8DBFDF1A7E4F9000F8015F /* sands */,
 				DC8DBFF51A7E4F9000F8015F /* sandsTests */,
 				DC8DBFDE1A7E4F9000F8015F /* Products */,
@@ -92,6 +98,7 @@
 				DC8DC0021A7E51E600F8015F /* Draw2D.swift */,
 				DC8DC0041A7E633700F8015F /* PixelGrid.swift */,
 				DCC63E1A1A8388CA00D5483E /* SandGrid.swift */,
+				DCC63E1C1A839EE900D5483E /* Shaders.metal */,
 			);
 			path = sands;
 			sourceTree = "<group>";
@@ -221,6 +228,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DCC63E1D1A839EE900D5483E /* Shaders.metal in Sources */,
 				DC8DBFE51A7E4F9000F8015F /* ViewController.swift in Sources */,
 				DC8DBFE31A7E4F9000F8015F /* AppDelegate.swift in Sources */,
 				DCC63E1B1A8388CA00D5483E /* SandGrid.swift in Sources */,
